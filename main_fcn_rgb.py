@@ -8,15 +8,15 @@ import scipy.misc
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_integer("image_height", "256", "image target height")
 tf.flags.DEFINE_integer("image_width", "256", "image target width")
-tf.flags.DEFINE_integer("num_of_feature", "5", "number of feature")
+tf.flags.DEFINE_integer("num_of_feature", "3", "number of feature")
 tf.flags.DEFINE_integer("num_of_class", "2", "number of class")
 
-tf.flags.DEFINE_integer("epochs", "5", "epochs for training")
+tf.flags.DEFINE_string("logs_dir", "./logs_fcn_rgb", "path to logs directory")
+tf.flags.DEFINE_integer("epochs", "2", "epochs for training")
 tf.flags.DEFINE_integer("batch_size", "9", "batch size for training")
-tf.flags.DEFINE_string("logs_dir", "./logs_end", "path to logs directory")
 tf.flags.DEFINE_string("model_dir", "./pretrain_model", "path to VGG19 directory")
 tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer")
-tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize")
+tf.flags.DEFINE_string('mode', "test", "Mode train/ test/ visualize")
 
 
 def get_shape(tensor):
@@ -88,17 +88,20 @@ def simple_nn(x, drop_probability, is_training=False):
         """ deconv5 16x16"""
         deconv5 = tf.layers.conv2d_transpose(inputs=dropout7, filters=512, kernel_size=[4, 4],
                                              strides=[2, 2], padding='same', activation=tf.nn.relu, name='deconv5')
-        deconv5_drop = tf.layers.dropout(inputs=deconv5, rate=drop_probability, training=is_training, name='deconv5_drop')
+        deconv5_drop = tf.layers.dropout(inputs=deconv5, rate=drop_probability,
+                                         training=is_training, name='deconv5_drop')
         concat5 = tf.concat([deconv5_drop, pool4], 3)
         """ deconv4 32x32"""
         deconv4 = tf.layers.conv2d_transpose(inputs=concat5, filters=256, kernel_size=[4, 4],
                                              strides=[2, 2], padding='same', activation=tf.nn.relu, name='deconv4')
-        deconv4_drop = tf.layers.dropout(inputs=deconv4, rate=drop_probability, training=is_training, name='deconv4_drop')
+        deconv4_drop = tf.layers.dropout(inputs=deconv4, rate=drop_probability,
+                                         training=is_training, name='deconv4_drop')
         concat4 = tf.concat([deconv4_drop, pool3], 3)
         """ deconv3 64x64"""
         deconv3 = tf.layers.conv2d_transpose(inputs=concat4, filters=128, kernel_size=[4, 4],
                                              strides=[2, 2], padding='same', activation=tf.nn.relu, name='deconv3')
-        deconv3_drop = tf.layers.dropout(inputs=deconv3, rate=drop_probability, training=is_training, name='deconv3_drop')
+        deconv3_drop = tf.layers.dropout(inputs=deconv3, rate=drop_probability,
+                                         training=is_training, name='deconv3_drop')
         concat3 = tf.concat([deconv3_drop, pool2], 3)
         """ deconv2 128x128"""
         deconv2 = tf.layers.conv2d_transpose(inputs=concat3, filters=64, kernel_size=[4, 4],
@@ -109,12 +112,14 @@ def simple_nn(x, drop_probability, is_training=False):
                                              strides=[2, 2], padding='same', activation=tf.nn.relu, name='deconv1')
         concat1 = tf.concat([deconv1, x], 3)
         """ fcn0 256x256"""
-        fcn0_1 = tf.layers.conv2d(inputs=concat1, filters=32, kernel_size=[1, 1],
+        fcn0_1 = tf.layers.conv2d(inputs=concat1, filters=32, kernel_size=[3, 3],
                                   strides=[1, 1], padding='same', activation=tf.nn.relu, name='fcn0_1')
-        fcn0_2 = tf.layers.conv2d(inputs=fcn0_1, filters=FLAGS.num_of_class, kernel_size=[1, 1],
+        fcn0_2 = tf.layers.conv2d(inputs=fcn0_1, filters=32, kernel_size=[1, 1],
                                   strides=[1, 1], padding='same', activation=tf.nn.relu, name='fcn0_2')
+        fcn0_3 = tf.layers.conv2d(inputs=fcn0_2, filters=FLAGS.num_of_class, kernel_size=[1, 1],
+                                  strides=[1, 1], padding='same', activation=None, name='fcn0_3')
 
-    return fcn0_2
+    return fcn0_3
 
 
 def main(args=None):
@@ -137,27 +142,28 @@ def main(args=None):
     """
     global_step = tf.Variable(0, trainable=False)
     # Placeholder
-    with tf.variable_scope("placeholder"):
-        learning_rate = tf.placeholder(tf.float32)
-        is_training = tf.placeholder(tf.bool)
-        drop_probability = tf.placeholder(tf.float32, name="drop_probability")
-        data_x = tf.placeholder(tf.float32, shape=[None, FLAGS.image_height, FLAGS.image_width, FLAGS.num_of_feature],
-                                name="data_x")
-        data_y = tf.placeholder(tf.int32, shape=[None, FLAGS.image_height, FLAGS.image_width],
-                                name="data_y")
-    # Network
-    with tf.variable_scope("network"):
-        logits = simple_nn(x=data_x, drop_probability=drop_probability, is_training=is_training)
+    learning_rate = tf.placeholder(tf.float32)
+    is_training = tf.placeholder(tf.bool)
+    drop_probability = tf.placeholder(tf.float32, name="drop_probability")
+    data_x = tf.placeholder(tf.float32, shape=[None, FLAGS.image_height, FLAGS.image_width, FLAGS.num_of_feature],
+                            name="data_x")
+    data_y = tf.placeholder(tf.int32, shape=[None, FLAGS.image_height, FLAGS.image_width],
+                            name="data_y")
+    """
+    Network
+    """
+    logits = simple_nn(x=data_x, drop_probability=drop_probability, is_training=is_training)
     # Loss
-    with tf.variable_scope("loss"):
-        loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(
-            logits=logits, labels=data_y, name="entropy")))
+    loss = tf.reduce_mean((tf.nn.sparse_softmax_cross_entropy_with_logits(
+        logits=logits, labels=data_y, name="entropy")))
     """
     Optimizer
     """
-    trainable_var = tf.get_collection(key=tf.GraphKeys.TRAINABLE_VARIABLES, scope='network/simple_nn')
-    train_op = tf.train.AdamOptimizer(learning_rate).minimize(
-        loss=loss, global_step=global_step, var_list=trainable_var)
+    trainable_var = tf.get_collection(key=tf.GraphKeys.TRAINABLE_VARIABLES, scope='simple_nn')
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies(update_ops):
+        train_op = tf.train.AdamOptimizer(learning_rate).minimize(
+            loss=loss, global_step=global_step, var_list=trainable_var)
     """
     Graph Logs
     """
@@ -177,47 +183,77 @@ def main(args=None):
         else:
             print("No Model found.")
 
-        cur_learning_rate = FLAGS.learning_rate
-        for epoch in range(0, epochs):
-            np.random.shuffle(aaai_parser.mat_train_paths)
-            for batch in range(0, batches):
-                x_batch, y_batch = aaai_parser.load_mat_train_datum_batch(batch*batch_size, (batch+1)*batch_size)
+        if FLAGS.mode == 'train':
+            cur_learning_rate = FLAGS.learning_rate
+            for epoch in range(0, epochs):
+                np.random.shuffle(aaai_parser.mat_train_paths)
+                for batch in range(0, batches):
+                    x_batch, y_batch = aaai_parser.load_mat_train_datum_batch(batch*batch_size, (batch+1)*batch_size)
+                    x_batch = np.array(x_batch, dtype=np.float32)[:, :, :, :3]
+                    y_batch = np.array(y_batch, dtype=np.int32)
+                    feed_dict = {data_x: x_batch, data_y: y_batch,
+                                 drop_probability: 0.2, is_training: True, learning_rate: cur_learning_rate}
+                    _, loss_sess, global_step_sess = sess.run([train_op, loss, global_step], feed_dict=feed_dict)
+
+                    print('global_setp: {:d}, epoch: [{:d}/{:d}], batch: [{:d}/{:d}], data: {:d}-{:d}, loss: {:f}'
+                          .format(global_step_sess, epoch, epochs, batch, batches,
+                                  batch*batch_size, (batch+1)*batch_size, loss_sess))
+
+                    if global_step_sess % 10 == 1:
+                        summary_str = sess.run(summary_op, feed_dict={
+                            data_x: x_batch, data_y: y_batch, drop_probability: 0.0, is_training: False})
+                        summary_writer.add_summary(summary_str, global_step_sess)
+
+                    if global_step_sess % 150 == 1:
+                        logits_sess = sess.run(logits, feed_dict={
+                            data_x: x_batch, drop_probability: 0.0, is_training: False})
+                        print('Logging images..')
+                        for batch_idx, mat_train_paths in \
+                                enumerate(aaai_parser.mat_train_paths[batch*batch_size:(batch+1)*batch_size]):
+                            name = mat_train_paths.split('/')[-1].split('.')[0]
+                            scipy.misc.imsave('{}/images/{:d}_{}_0_rgb.png'.format(
+                                FLAGS.logs_dir, global_step_sess, name), x_batch[batch_idx, :, :, :3])
+                            #scipy.misc.imsave('{}/images/{:d}_{}_1_s.png'.format(
+                            #    FLAGS.logs_dir, global_step_sess, name), x_batch[batch_idx, :, :, 3])
+                            #scipy.misc.imsave('{}/images/{:d}_{}_2_d.png'.format(
+                            #    FLAGS.logs_dir, global_step_sess, name), x_batch[batch_idx, :, :, 4])
+                            scipy.misc.imsave('{}/images/{:d}_{}_3_gt.png'.format(
+                                FLAGS.logs_dir, global_step_sess, name), y_batch[batch_idx])
+                            scipy.misc.imsave('{}/images/{:d}_{}_4_pred.png'.format(
+                                FLAGS.logs_dir, global_step_sess, name), np.argmax(logits_sess[batch_idx], axis=2))
+
+                    if global_step_sess % 500 == 0:
+                        print('Saving model...')
+                        saver.save(sess, FLAGS.logs_dir + "/model.ckpt", global_step=global_step_sess)
+
+        elif FLAGS.mode == 'test':
+            aaai_parser.load_mat_valid_paths()
+            batch_size = 1
+            data_len = len(aaai_parser.mat_valid_paths)
+            for batch in range(0, data_len):
+                x_batch, y_batch = aaai_parser.load_mat_valid_datum_batch(batch * batch_size, (batch + 1) * batch_size)
                 x_batch = np.array(x_batch, dtype=np.float32)
                 y_batch = np.array(y_batch, dtype=np.int32)
-                feed_dict = {data_x: x_batch, data_y: y_batch, drop_probability: 0.2,
-                             is_training: True, learning_rate: cur_learning_rate}
-                _, loss_sess, global_step_sess = sess.run([train_op, loss, global_step], feed_dict=feed_dict)
+                feed_dict = {data_x: x_batch, data_y: y_batch, drop_probability: 0.0, is_training: False}
+                loss_sess, logits_sess = sess.run([loss, logits], feed_dict=feed_dict)
 
-                print('global_setp: {:d}, epoch: [{:d}/{:d}], batch: [{:d}/{:d}], data: {:d}-{:d}, loss: {:f}'
-                      .format(global_step_sess, epoch, epochs, batch, batches,
-                              batch*batch_size, (batch+1)*batch_size, loss_sess))
+                print('[{:d}/{:d}], loss:{:f}'.format(batch, data_len, loss_sess))
 
-                if global_step_sess % 10 == 1:
-                    summary_str = sess.run(summary_op, feed_dict={
-                        data_x: x_batch, data_y: y_batch, drop_probability: 0.0, is_training: False})
-                    summary_writer.add_summary(summary_str, global_step_sess)
+                batch_idx = 0
+                name = aaai_parser.mat_valid_paths[batch].split('/')[-1].split('.')[0]
+                scipy.misc.imsave('{}/test/{:d}_{}_0_rgb.png'.format(FLAGS.logs_dir, batch, name),
+                                  x_batch[batch_idx, :, :, :3])
+                scipy.misc.imsave('{}/test/{:d}_{}_1_s.png'.format(FLAGS.logs_dir, batch, name),
+                                  x_batch[batch_idx, :, :, 3])
+                scipy.misc.imsave('{}/test/{:d}_{}_2_d.png'.format(FLAGS.logs_dir, batch, name),
+                                  x_batch[batch_idx, :, :, 4])
+                scipy.misc.imsave('{}/test/{:d}_{}_3_gt.png'.format(FLAGS.logs_dir, batch, name),
+                                  y_batch[batch_idx])
+                scipy.misc.imsave('{}/test/{:d}_{}_4_pred.png'.format(FLAGS.logs_dir, batch, name),
+                                  np.argmax(logits_sess[batch_idx], axis=2))
 
-                if global_step_sess % 150 == 1:
-                    logits_sess = sess.run(logits, feed_dict={
-                        data_x: x_batch, drop_probability: 0.0, is_training: False})
-                    print('Logging images..')
-                    for batch_idx, mat_train_paths in \
-                            enumerate(aaai_parser.mat_train_paths[batch*batch_size:(batch+1)*batch_size]):
-                        name = mat_train_paths.split('/')[-1].split('.')[0]
-                        scipy.misc.imsave('{}/images/{:d}_{}_0_rgb.png'.format(FLAGS.logs_dir, global_step_sess, name),
-                                          x_batch[batch_idx, :, :, :3])
-                        scipy.misc.imsave('{}/images/{:d}_{}_1_s.png'.format(FLAGS.logs_dir, global_step_sess, name),
-                                          x_batch[batch_idx, :, :, 3])
-                        scipy.misc.imsave('{}/images/{:d}_{}_2_d.png'.format(FLAGS.logs_dir, global_step_sess, name),
-                                          x_batch[batch_idx, :, :, 4])
-                        scipy.misc.imsave('{}/images/{:d}_{}_3_gt.png'.format(FLAGS.logs_dir, global_step_sess, name),
-                                          y_batch[batch_idx])
-                        scipy.misc.imsave('{}/images/{:d}_{}_4_pred.png'.format(FLAGS.logs_dir, global_step_sess, name),
-                                          np.argmax(logits_sess[batch_idx], axis=2))
-
-                if global_step_sess % 500 == 0:
-                    print('Saving model...')
-                    saver.save(sess, FLAGS.logs_dir + "/model.ckpt", global_step=global_step_sess)
+                if batch > 10:
+                    break
 
 
 if __name__ == "__main__":

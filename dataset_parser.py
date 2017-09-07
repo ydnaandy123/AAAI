@@ -107,7 +107,7 @@ class AAAIParser:
     def __init__(self, dataset_dir, target_height=256, target_width=256):
         self.target_height, self.target_width = target_height, target_width
         self.dataset_dir = dataset_dir
-        self.mat_train_dir = self.dataset_dir + '/validation'  # train
+        self.mat_train_dir = self.dataset_dir + '/train'
         self.mat_valid_dir = self.dataset_dir + '/validation'
         self.mat_test_dir = self.dataset_dir + '/test'
 
@@ -125,16 +125,15 @@ class AAAIParser:
 
     def load_mat_train_datum_batch(self, start, end):
         print('loading training datum batch...')
+        batch_len = end - start
         mat_train_paths_batch = self.mat_train_paths[start:end]
         x_batch, y_batch = [], []
         for idx, mat_train_path in enumerate(mat_train_paths_batch):
             mat_contents = sio.loadmat(mat_train_path)
             x, y = mat_contents['sample'][0][0]['RGBSD'], mat_contents['sample'][0][0]['GT']
-            x_rgb = scipy.misc.imresize(x[:, :, :3], (self.target_height, self.target_width), interp='bilinear')
-            x_s = scipy.misc.imresize(x[:, :, 3], (self.target_height, self.target_width), interp='bilinear')
-            x_d = scipy.misc.imresize(x[:, :, 4], (self.target_height, self.target_width), interp='bilinear')
-            x = np.dstack((x_rgb, x_s, x_d))
-            y = scipy.misc.imresize(y, (self.target_height, self.target_width), interp='nearest')
+            if idx >= batch_len // 2:
+                x = np.fliplr(x)
+                y = np.fliplr(y)
             x_batch.append(x)
             y_batch.append(y)
         return x_batch, y_batch
@@ -146,27 +145,6 @@ class AAAIParser:
         for idx, mat_valid_path in enumerate(mat_valid_paths_batch):
             mat_contents = sio.loadmat(mat_valid_path)
             x, y = mat_contents['sample'][0][0]['RGBSD'], mat_contents['sample'][0][0]['GT']
-            x_rgb = scipy.misc.imresize(x[:, :, :3], (self.target_height, self.target_width), interp='bilinear')
-            x_s = scipy.misc.imresize(x[:, :, 3], (self.target_height, self.target_width), interp='bilinear')
-            x_d = scipy.misc.imresize(x[:, :, 4], (self.target_height, self.target_width), interp='bilinear')
-            x = np.dstack((x_rgb, x_s, x_d))
-            y = scipy.misc.imresize(y, (self.target_height, self.target_width), interp='nearest')
             x_batch.append(x)
             y_batch.append(y)
         return x_batch, y_batch
-
-    def visual(self):
-        '''
-        y_visual = y * 255
-        y_visual = np.dstack((y_visual, y_visual, y_visual))
-        x_s = x[:, :, 3]
-        x_s_visual = np.dstack((x_s, x_s, x_s))
-        x_d = x[:, :, 4]
-        x_d_visual = np.dstack((x_d, x_d, x_d))
-        visual_1 = np.hstack((x[:, :, :3], x_s_visual))
-        visual_2 = np.hstack((x_d_visual, y_visual))
-        scipy.misc.imshow(np.vstack((visual_1, visual_2)))
-        '''
-        return self
-
-
