@@ -1,7 +1,7 @@
 from __future__ import print_function
 import tensorflow as tf
 import numpy as np
-import scipy.io
+import scipy.io as sio
 import dataset_parser
 import scipy.misc
 
@@ -15,7 +15,7 @@ tf.flags.DEFINE_string("logs_dir", "./logs_ae_rgb", "path to logs directory")
 tf.flags.DEFINE_integer("epochs", "2", "epochs for training")
 tf.flags.DEFINE_integer("batch_size", "9", "batch size for training")
 tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer")
-tf.flags.DEFINE_string('mode', "train", "Mode train/ test/ visualize")
+tf.flags.DEFINE_string('mode', "test", "Mode train/ test/ visualize")
 
 
 def get_shape(tensor):
@@ -180,7 +180,7 @@ def main(args=None):
         ckpt = tf.train.get_checkpoint_state(FLAGS.logs_dir + '/model')
         if ckpt and ckpt.model_checkpoint_path:
             saver.restore(sess, ckpt.model_checkpoint_path)
-            print("Model restored!")
+            print("Model restored: {}".format(ckpt.model_checkpoint_path))
         else:
             print("No Model found.")
 
@@ -226,35 +226,27 @@ def main(args=None):
                     if global_step_sess % 500 == 0:
                         print('Saving model...')
                         saver.save(sess, FLAGS.logs_dir + "/model/model.ckpt", global_step=global_step_sess)
-
         elif FLAGS.mode == 'test':
-            aaai_parser.load_mat_valid_paths()
-            batch_size = 1
-            data_len = len(aaai_parser.mat_valid_paths)
-            for batch in range(0, data_len):
-                x_batch, y_batch = aaai_parser.load_mat_valid_datum_batch(batch * batch_size, (batch + 1) * batch_size)
-                x_batch = np.array(x_batch, dtype=np.float32)
-                y_batch = np.array(y_batch, dtype=np.int32)
-                feed_dict = {data_x: x_batch, data_y: y_batch, drop_probability: 0.0, is_training: False}
-                loss_sess, logits_sess = sess.run([loss, logits], feed_dict=feed_dict)
+            aaai_parser.load_mat_test_paths()
+            for idx, mat_valid_path in enumerate(aaai_parser.mat_test_paths):
+                mat_contents = sio.loadmat(mat_valid_path)
+                x = mat_contents['sample'][0][0]['RGBSD']
+                x_batch = np.array([x], dtype=np.float32)[:, :, :, :3]
+                feed_dict = {data_x: x_batch, drop_probability: 0.0, is_training: False}
+                logits_sess = sess.run(logits, feed_dict=feed_dict)
+                print('[{:d}/{:d}]'.format(idx, len(aaai_parser.mat_test_paths)))
 
-                print('[{:d}/{:d}], loss:{:f}'.format(batch, data_len, loss_sess))
-
-                batch_idx = 0
-                name = aaai_parser.mat_valid_paths[batch].split('/')[-1].split('.')[0]
-                scipy.misc.imsave('{}/test/{:d}_{}_0_rgb.png'.format(FLAGS.logs_dir, batch, name),
-                                  x_batch[batch_idx, :, :, :3])
-                scipy.misc.imsave('{}/test/{:d}_{}_1_s.png'.format(FLAGS.logs_dir, batch, name),
-                                  x_batch[batch_idx, :, :, 3])
-                scipy.misc.imsave('{}/test/{:d}_{}_2_d.png'.format(FLAGS.logs_dir, batch, name),
-                                  x_batch[batch_idx, :, :, 4])
-                scipy.misc.imsave('{}/test/{:d}_{}_3_gt.png'.format(FLAGS.logs_dir, batch, name),
-                                  y_batch[batch_idx])
-                scipy.misc.imsave('{}/test/{:d}_{}_4_pred.png'.format(FLAGS.logs_dir, batch, name),
-                                  np.argmax(logits_sess[batch_idx], axis=2))
-
-                if batch > 10:
-                    break
+                name = mat_valid_path.split('/')[-1].split('.')[0]
+                scipy.misc.imsave('{}/test/{:d}_{}_0_rgb.png'.format(
+                    FLAGS.logs_dir, idx, name), x_batch[0, :, :, :3])
+                # scipy.misc.imsave('{}/test/{:d}_{}_1_s.png'.format(
+                #     FLAGS.logs_dir, idx, name), x_batch[0, :, :, 3])
+                # scipy.misc.imsave('{}/test/{:d}_{}_2_d.png'.format(
+                #     FLAGS.logs_dir, idx, name), x_batch[0, :, :, 4])
+                scipy.misc.imsave('{}/test/{:d}_{}_4_pred.png'.format(FLAGS.logs_dir, idx, name),
+                                  np.argmax(logits_sess[0], axis=2))
+                mat_contents['pred'] = logits_sess
+                sio.savemat('./dataset/AAAI/MSRA10K_Dnn_pred3/{}'.format(name), {'a_dict': mat_contents})
 
 
 if __name__ == "__main__":

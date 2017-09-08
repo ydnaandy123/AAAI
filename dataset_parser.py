@@ -3,7 +3,6 @@ import scipy.misc
 from glob import glob
 import numpy as np
 import scipy.io as sio
-import tensorflow as tf
 
 
 class CityscapesParser:
@@ -109,11 +108,9 @@ class AAAIParser:
         self.dataset_dir = dataset_dir
         self.mat_train_dir = self.dataset_dir + '/train'
         self.mat_valid_dir = self.dataset_dir + '/validation'
-        self.mat_test_dir = self.dataset_dir + '/test'
+        self.mat_test_dir = self.dataset_dir + '/MSRA10K_Dnn'
 
         self.mat_train_paths, self.mat_valid_paths, self.mat_test_paths = [], [], []
-
-        self.valid_x, self.valid_y = [], []
 
     def load_mat_train_paths(self):
         self.mat_train_paths = sorted(glob(os.path.join(self.mat_train_dir, "*.mat")))
@@ -121,6 +118,10 @@ class AAAIParser:
 
     def load_mat_valid_paths(self):
         self.mat_valid_paths = sorted(glob(os.path.join(self.mat_valid_dir, "*.mat")))
+        return self
+
+    def load_mat_test_paths(self):
+        self.mat_test_paths = sorted(glob(os.path.join(self.mat_test_dir, "*.mat")))
         return self
 
     def load_mat_train_datum_batch(self, start, end):
