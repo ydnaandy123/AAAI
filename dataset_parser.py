@@ -108,7 +108,7 @@ class AAAIParser:
         self.dataset_dir = dataset_dir
         self.mat_train_dir = self.dataset_dir + '/train'
         self.mat_valid_dir = self.dataset_dir + '/validation'
-        self.mat_test_dir = self.dataset_dir + '/MSRA10K_Dnn'
+        self.mat_test_dir = self.dataset_dir + '/PHONE_Dnn'
 
         self.mat_train_paths, self.mat_valid_paths, self.mat_test_paths = [], [], []
 

@@ -226,7 +226,7 @@ def main(args=None):
                 scipy.misc.imsave('{}/test/{:d}_{}_4_pred.png'.format(FLAGS.logs_dir, idx, name),
                                   np.argmax(logits_sess[0], axis=2))
                 mat_contents['pred'] = logits_sess
-                sio.savemat('./dataset/AAAI/MSRA10K_Dnn_pred5/{}'.format(name), {'a_dict': mat_contents})
+                sio.savemat('./dataset/AAAI/PHONE_Dnn_pred5/{}'.format(name), {'a_dict': mat_contents})
 
 
 if __name__ == "__main__":

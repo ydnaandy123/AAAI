@@ -8,10 +8,10 @@ import scipy.misc
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_integer("image_height", "256", "image target height")
 tf.flags.DEFINE_integer("image_width", "256", "image target width")
-tf.flags.DEFINE_integer("num_of_feature", "5", "number of feature")
+tf.flags.DEFINE_integer("num_of_feature", "3", "number of feature")
 tf.flags.DEFINE_integer("num_of_class", "2", "number of class")
 
-tf.flags.DEFINE_string("logs_dir", "./logs_dilated_rgbsd", "path to logs directory")
+tf.flags.DEFINE_string("logs_dir", "./logs_dilated_rgb", "path to logs directory")
 tf.flags.DEFINE_integer("epochs", "2", "epochs for training")
 tf.flags.DEFINE_integer("batch_size", "9", "batch size for training")
 tf.flags.DEFINE_float("learning_rate", "1e-4", "Learning rate for Adam Optimizer")
@@ -144,145 +144,52 @@ def dilated_net(x, drop_probability, is_training):
         with tf.variable_scope('dilated_block'):
             """ dilated3 64x64"""
             conv3 = tf.layers.conv2d(inputs=pool2,
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
+                                     filters=64, kernel_size=[3, 3], strides=[1, 1], padding='same',
                                      activation=tf.nn.relu, name='conv3')
             batch_c3 = tf.layers.batch_normalization(inputs=conv3, training=is_training, name='batch_c3')
-            dilated3 = tf.layers.conv2d(inputs=batch_c3, filters=128, kernel_size=[3, 3], strides=[1, 1],
+            dilated3 = tf.layers.conv2d(inputs=batch_c3, filters=64, kernel_size=[3, 3], strides=[1, 1],
                                         padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated3')
             batch_dlt3 = tf.layers.batch_normalization(inputs=dilated3, training=is_training, name='batch_dlt3')
             """ dilated4 32x32"""
             conv4 = tf.layers.conv2d(inputs=tf.concat([pool2, batch_dlt3], axis=3),
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
+                                     filters=64, kernel_size=[3, 3], strides=[1, 1], padding='same',
                                      activation=tf.nn.relu, name='conv4')
             batch_c4 = tf.layers.batch_normalization(inputs=conv4, training=is_training, name='batch_c4')
-            dilated4 = tf.layers.conv2d(inputs=batch_c4, filters=128, kernel_size=[3, 3], strides=[1, 1],
+            dilated4 = tf.layers.conv2d(inputs=batch_c4, filters=64, kernel_size=[3, 3], strides=[1, 1],
                                         padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated4')
             batch_dlt4 = tf.layers.batch_normalization(inputs=dilated4, training=is_training, name='batch_dlt4')
             """ dilated5 16x16"""
             conv5 = tf.layers.conv2d(inputs=tf.concat([pool2, batch_dlt3, batch_dlt4], axis=3),
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
+                                     filters=64, kernel_size=[3, 3], strides=[1, 1], padding='same',
                                      activation=tf.nn.relu, name='conv5')
             batch_c5 = tf.layers.batch_normalization(inputs=conv5, training=is_training, name='batch_c5')
-            dilated5 = tf.layers.conv2d(inputs=batch_c5, filters=128, kernel_size=[3, 3], strides=[1, 1],
+            dilated5 = tf.layers.conv2d(inputs=batch_c5, filters=64, kernel_size=[3, 3], strides=[1, 1],
                                         padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated5')
             batch_dlt5 = tf.layers.batch_normalization(inputs=dilated5, training=is_training, name='batch_dlt5')
             """ dilated6 8x8"""
             conv6 = tf.layers.conv2d(inputs=tf.concat([pool2, batch_dlt3, batch_dlt4, batch_dlt5], axis=3),
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
+                                     filters=64, kernel_size=[3, 3], strides=[1, 1], padding='same',
                                      activation=tf.nn.relu, name='conv6')
             batch_c6 = tf.layers.batch_normalization(inputs=conv6, training=is_training, name='batch_c6')
-            dilated6 = tf.layers.conv2d(inputs=batch_c6, filters=128, kernel_size=[3, 3], strides=[1, 1],
+            dilated6 = tf.layers.conv2d(inputs=batch_c6, filters=64, kernel_size=[3, 3], strides=[1, 1],
                                         padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated6')
             batch_dlt6 = tf.layers.batch_normalization(inputs=dilated6, training=is_training, name='batch_dlt6')
             """ dilated7 4x4"""
             conv7 = tf.layers.conv2d(inputs=tf.concat([pool2, batch_dlt3, batch_dlt4, batch_dlt5,
                                                        batch_dlt6], axis=3),
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
+                                     filters=64, kernel_size=[3, 3], strides=[1, 1], padding='same',
                                      activation=tf.nn.relu, name='conv7')
             batch_c7 = tf.layers.batch_normalization(inputs=conv7, training=is_training, name='batch_c7')
-            dilated7 = tf.layers.conv2d(inputs=batch_c7, filters=128, kernel_size=[3, 3], strides=[1, 1],
+            dilated7 = tf.layers.conv2d(inputs=batch_c7, filters=64, kernel_size=[3, 3], strides=[1, 1],
                                         padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated7')
             batch_dlt7 = tf.layers.batch_normalization(inputs=dilated7, training=is_training, name='batch_dlt7')
             """ dilated8 2x2"""
             conv8 = tf.layers.conv2d(inputs=tf.concat([pool2, batch_dlt3, batch_dlt4, batch_dlt5,
                                                        batch_dlt6, batch_dlt7], axis=3),
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
+                                     filters=64, kernel_size=[3, 3], strides=[1, 1], padding='same',
                                      activation=tf.nn.relu, name='conv8')
             batch_c8 = tf.layers.batch_normalization(inputs=conv8, training=is_training, name='batch_c8')
-            dilated8 = tf.layers.conv2d(inputs=batch_c8, filters=128, kernel_size=[3, 3], strides=[1, 1],
-                                        padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated8')
-            batch_dlt8 = tf.layers.batch_normalization(inputs=dilated8, training=is_training, name='batch_dlt8')
-
-            dilated_out = tf.concat([pool2, batch_dlt3, batch_dlt4, batch_dlt5,
-                                     batch_dlt6, batch_dlt7, batch_dlt8], axis=3)
-
-        """ deconv2 128x128"""
-        deconv2 = tf.layers.conv2d_transpose(inputs=dilated_out, filters=128, kernel_size=[3, 3],
-                                             strides=[2, 2], padding='same', activation=tf.nn.relu, name='deconv2')
-        batch_d2 = tf.layers.batch_normalization(inputs=deconv2, training=is_training, name='batch_d2')
-        concat2 = tf.concat([batch_d2, pool1], 3)
-        """ deconv1 256x256"""
-        deconv1 = tf.layers.conv2d_transpose(inputs=concat2, filters=64, kernel_size=[3, 3],
-                                             strides=[2, 2], padding='same', activation=tf.nn.relu, name='deconv1')
-        batch_d1 = tf.layers.batch_normalization(inputs=deconv1, training=is_training, name='batch_d1')
-        concat1 = tf.concat([batch_d1, x], 3)
-        """ output 256x256"""
-        deconv0 = tf.layers.conv2d(inputs=concat1, filters=32, kernel_size=[3, 3],
-                                   strides=[1, 1], padding='same', activation=tf.nn.relu, name='deconv0')
-        output = tf.layers.conv2d(inputs=deconv0, filters=FLAGS.num_of_class, kernel_size=[1, 1],
-                                  strides=[1, 1], padding='same', activation=None, name='output')
-
-    return output
-
-
-
-def dilated_net(x, drop_probability, is_training):
-    with tf.variable_scope('dilated_net'):
-        x = tf.subtract(x, 127.5)
-        """ conv0 256x256"""
-        conv0 = tf.layers.conv2d(inputs=x, filters=32, kernel_size=[3, 3],
-                                 strides=[1, 1], padding='same', activation=tf.nn.relu, name='conv0')
-        batch_c0 = tf.layers.batch_normalization(inputs=conv0, training=is_training, name='batch_c0')
-        """ conv1 256x256"""
-        conv1 = tf.layers.conv2d(inputs=batch_c0, filters=64, kernel_size=[3, 3],
-                                 strides=[1, 1], padding='same', activation=tf.nn.relu, name='conv1')
-        batch_c1 = tf.layers.batch_normalization(inputs=conv1, training=is_training, name='batch_c1')
-        pool1 = tf.layers.max_pooling2d(inputs=batch_c1, pool_size=[2, 2], strides=[2, 2])
-        """ conv2 128x128"""
-        conv2 = tf.layers.conv2d(inputs=pool1, filters=128, kernel_size=[3, 3],
-                                 strides=[1, 1], padding='same', activation=tf.nn.relu, name='conv2')
-        batch_c2 = tf.layers.batch_normalization(inputs=conv2, training=is_training, name='batch_c2')
-        pool2 = tf.layers.max_pooling2d(inputs=batch_c2, pool_size=[2, 2], strides=[2, 2])
-
-        with tf.variable_scope('dilated_block'):
-            """ dilated3 64x64"""
-            conv3 = tf.layers.conv2d(inputs=pool2,
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
-                                     activation=tf.nn.relu, name='conv3')
-            batch_c3 = tf.layers.batch_normalization(inputs=conv3, training=is_training, name='batch_c3')
-            dilated3 = tf.layers.conv2d(inputs=batch_c3, filters=128, kernel_size=[3, 3], strides=[1, 1],
-                                        padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated3')
-            batch_dlt3 = tf.layers.batch_normalization(inputs=dilated3, training=is_training, name='batch_dlt3')
-            """ dilated4 32x32"""
-            conv4 = tf.layers.conv2d(inputs=tf.concat([pool2, batch_dlt3], axis=3),
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
-                                     activation=tf.nn.relu, name='conv4')
-            batch_c4 = tf.layers.batch_normalization(inputs=conv4, training=is_training, name='batch_c4')
-            dilated4 = tf.layers.conv2d(inputs=batch_c4, filters=128, kernel_size=[3, 3], strides=[1, 1],
-                                        padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated4')
-            batch_dlt4 = tf.layers.batch_normalization(inputs=dilated4, training=is_training, name='batch_dlt4')
-            """ dilated5 16x16"""
-            conv5 = tf.layers.conv2d(inputs=tf.concat([pool2, batch_dlt3, batch_dlt4], axis=3),
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
-                                     activation=tf.nn.relu, name='conv5')
-            batch_c5 = tf.layers.batch_normalization(inputs=conv5, training=is_training, name='batch_c5')
-            dilated5 = tf.layers.conv2d(inputs=batch_c5, filters=128, kernel_size=[3, 3], strides=[1, 1],
-                                        padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated5')
-            batch_dlt5 = tf.layers.batch_normalization(inputs=dilated5, training=is_training, name='batch_dlt5')
-            """ dilated6 8x8"""
-            conv6 = tf.layers.conv2d(inputs=tf.concat([pool2, batch_dlt3, batch_dlt4, batch_dlt5], axis=3),
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
-                                     activation=tf.nn.relu, name='conv6')
-            batch_c6 = tf.layers.batch_normalization(inputs=conv6, training=is_training, name='batch_c6')
-            dilated6 = tf.layers.conv2d(inputs=batch_c6, filters=128, kernel_size=[3, 3], strides=[1, 1],
-                                        padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated6')
-            batch_dlt6 = tf.layers.batch_normalization(inputs=dilated6, training=is_training, name='batch_dlt6')
-            """ dilated7 4x4"""
-            conv7 = tf.layers.conv2d(inputs=tf.concat([pool2, batch_dlt3, batch_dlt4, batch_dlt5,
-                                                       batch_dlt6], axis=3),
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
-                                     activation=tf.nn.relu, name='conv7')
-            batch_c7 = tf.layers.batch_normalization(inputs=conv7, training=is_training, name='batch_c7')
-            dilated7 = tf.layers.conv2d(inputs=batch_c7, filters=128, kernel_size=[3, 3], strides=[1, 1],
-                                        padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated7')
-            batch_dlt7 = tf.layers.batch_normalization(inputs=dilated7, training=is_training, name='batch_dlt7')
-            """ dilated8 2x2"""
-            conv8 = tf.layers.conv2d(inputs=tf.concat([pool2, batch_dlt3, batch_dlt4, batch_dlt5,
-                                                       batch_dlt6, batch_dlt7], axis=3),
-                                     filters=128, kernel_size=[3, 3], strides=[1, 1], padding='same',
-                                     activation=tf.nn.relu, name='conv8')
-            batch_c8 = tf.layers.batch_normalization(inputs=conv8, training=is_training, name='batch_c8')
-            dilated8 = tf.layers.conv2d(inputs=batch_c8, filters=128, kernel_size=[3, 3], strides=[1, 1],
+            dilated8 = tf.layers.conv2d(inputs=batch_c8, filters=64, kernel_size=[3, 3], strides=[1, 1],
                                         padding='same', activation=tf.nn.relu, dilation_rate=(2, 2), name='dilated8')
             batch_dlt8 = tf.layers.batch_normalization(inputs=dilated8, training=is_training, name='batch_dlt8')
 
@@ -376,7 +283,7 @@ def main(args=None):
                 np.random.shuffle(aaai_parser.mat_train_paths)
                 for batch in range(0, batches):
                     x_batch, y_batch = aaai_parser.load_mat_train_datum_batch(batch*batch_size, (batch+1)*batch_size)
-                    x_batch = np.array(x_batch, dtype=np.float32)
+                    x_batch = np.array(x_batch, dtype=np.float32)[:, :, :, :3]
                     y_batch = np.array(y_batch, dtype=np.int32)
                     feed_dict = {data_x: x_batch, data_y: y_batch,
                                  drop_probability: 0.2, is_training: True, learning_rate: cur_learning_rate}
@@ -400,10 +307,10 @@ def main(args=None):
                             name = mat_train_paths.split('/')[-1].split('.')[0]
                             scipy.misc.imsave('{}/images/{:d}_{}_0_rgb.png'.format(
                                 FLAGS.logs_dir, global_step_sess, name), x_batch[batch_idx, :, :, :3])
-                            scipy.misc.imsave('{}/images/{:d}_{}_1_s.png'.format(
-                                FLAGS.logs_dir, global_step_sess, name), x_batch[batch_idx, :, :, 3])
-                            scipy.misc.imsave('{}/images/{:d}_{}_2_d.png'.format(
-                                FLAGS.logs_dir, global_step_sess, name), x_batch[batch_idx, :, :, 4])
+                            # scipy.misc.imsave('{}/images/{:d}_{}_1_s.png'.format(
+                            #     FLAGS.logs_dir, global_step_sess, name), x_batch[batch_idx, :, :, 3])
+                            # scipy.misc.imsave('{}/images/{:d}_{}_2_d.png'.format(
+                            #     FLAGS.logs_dir, global_step_sess, name), x_batch[batch_idx, :, :, 4])
                             scipy.misc.imsave('{}/images/{:d}_{}_3_gt.png'.format(
                                 FLAGS.logs_dir, global_step_sess, name), y_batch[batch_idx])
                             scipy.misc.imsave('{}/images/{:d}_{}_4_pred.png'.format(
