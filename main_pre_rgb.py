@@ -140,6 +140,8 @@ def main(args=None):
     Optimizer
     """
     trainable_var = tf.get_collection(key=tf.GraphKeys.TRAINABLE_VARIABLES, scope='vgg19_pre')
+    import tensorflow.contrib.slim as slim
+    slim.model_analyzer.analyze_vars(trainable_var, print_info=True)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         train_op = tf.train.AdamOptimizer(learning_rate).minimize(
@@ -226,8 +228,8 @@ def main(args=None):
                 scipy.misc.imsave('{}/test/{:d}_{}_4_pred.png'.format(FLAGS.logs_dir, idx, name),
                                   np.argmax(logits_sess[0], axis=2))
                 mat_contents['pred'] = logits_sess
-                sio.savemat('./dataset/AAAI/PHONE_Dnn_pred5/{}'.format(name), {'a_dict': mat_contents})
-
+                sio.savemat('./dataset/AAAI/{}_FCN/{}'.format(
+                    aaai_parser.test_name, name), {'a_dict': mat_contents})
 
 if __name__ == "__main__":
     tf.app.run()
